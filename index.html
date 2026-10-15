@@ -334,6 +334,21 @@ input[type=color]{width:30px;height:24px;padding:0;border:.5px solid var(--line-
         <p class="hint" id="pausedNote" hidden>일시정지한 장면 그대로 이미지로 저장돼요. 미리보기 아래 ■ 정지를 누르면 움직임 없는 원래 장면으로 돌아가요.</p>
         <p class="hint" id="gifNote" hidden>움직이는 GIF는 효과 탭 맨 아래에서 저장할 수 있어요.</p>
       </section>
+      <section class="sec">
+        <h2>X(트위터) 분할 저장 <input type="checkbox" class="switch" id="xsOn" aria-label="X 분할 저장 켜기"></h2>
+        <p class="hint" id="xsOff">완성 이미지를 2~4장으로 잘라 X에 순서대로 올리면 타임라인에서 한 장처럼 이어져 보여요.</p>
+        <div id="xsBody" style="display:grid;gap:12px">
+          <div class="row" style="gap:10px"><span class="lbl">나누는 방향</span><div class="seg" id="xsDir"><button type="button" data-v="v">위→아래</button><button type="button" data-v="h">왼→오른</button><button type="button" data-v="g">2×2 격자</button></div></div>
+          <div class="row" style="gap:10px"><span class="lbl">조각 수</span><div class="seg" id="xsN"><button type="button" data-v="2">2장</button><button type="button" data-v="3">3장</button><button type="button" data-v="4">4장</button></div></div>
+          <div class="row" style="gap:10px"><span class="lbl">조각 비율</span><div class="seg" id="xsRatio"><button type="button" data-v="16:9">16:9</button><button type="button" data-v="3:4">3:4</button><button type="button" data-v="4:5">4:5</button><button type="button" data-v="1:1">1:1</button></div></div>
+          <button class="chip" id="xsFit" type="button" style="justify-self:start">출력 크기를 이 비율에 맞추기</button>
+          <div class="field"><label for="xsGap">간격 보정</label><input id="xsGap" type="range" min="0" max="80"><output id="xsGapOut"></output></div>
+          <p class="hint">간격 보정을 주면 조각 사이(빨간 띠)를 버려서, X의 사진 사이 틈 너머로 그림이 이어지는 것처럼 보여요.</p>
+          <p class="hint" id="xsInfo"></p>
+          <div class="row"><button class="btn primary" id="xsSave" type="button">4장 따로 저장</button><button class="btn" id="xsZip" type="button">ZIP으로 한 번에</button></div>
+          <p class="hint">미리보기의 번호 순서대로 X에 올리세요. 저장 형식은 위 내보내기 설정을 따라요.</p>
+        </div>
+      </section>
       </div>
       <div class="tabpane" id="tabFx" role="tabpanel" aria-labelledby="tabBtnFx" hidden>
         <section class="sec">
@@ -446,7 +461,8 @@ const SIG_SW=['#ffffff','#f1e2bd','#d5b16b','#0d0f14'];
 const DEF={W:1920,H:1080,lock:false,lockR:16/9,layout:{1:'single',2:'h2',3:'L1R2',4:'g4'},split:{},
   pad:22,padSplit:false,padX:22,padY:22,gap:10,join:'soft',soft:90,softBlur:45,radius:0,stroke:0,strokeColor:'#ffffff',bgType:'solid',bg:'#0d0f14',dim:30,
   sig:{on:true,main:'이름',sub:'날짜',font:'NanumMyeongjo',font2:'NanumMyeongjo',size:40,size2:18,color:'#ffffff',opacity:92,pos:'br',inset:26,shadow:true},
-  fmt:'png',q:92,file:'',fileAuto:true,mine:[]};
+  fmt:'png',q:92,file:'',fileAuto:true,mine:[],
+  xs:{on:false,dir:'v',n:4,ratio:'16:9',gap:0}};
 
 DEF.fx={sigToo:false,frame:false,fv:2,
   rain:{on:false,amount:5,length:100,angle:-8,opacity:60,mood:20,speed:10},
@@ -472,6 +488,7 @@ try{
     for(const k in DEF.fx)if(k!=='sigToo')S.fx[k]=Object.assign({},DEF.fx[k],sf[k]||{});
     S.layout=Object.assign({},DEF.layout,saved.layout||{});
     S.split=Object.assign({},saved.split||{});
+    S.xs=Object.assign({},DEF.xs,saved.xs||{});
     if(!Array.isArray(S.mine)) S.mine=[];
     if(S.sig.main==='Aria Moonveil')S.sig.main=DEF.sig.main;
     if(S.sig.sub==='초코보 · 2026.10.15')S.sig.sub=DEF.sig.sub;
@@ -897,7 +914,7 @@ function fxVignette(x,Wd,Hd,o){const cx=Wd/2,cy=Hd/2,R=Math.hypot(cx,cy);const g
 /* ---------- preview ---------- */
 const view=$('#view'),vctx=view.getContext('2d'),wrap=$('#viewWrap');
 let vk=1,cssW=1,cssH=1,raf=0,previewT=null;
-function drawPreview(){vctx.setTransform(1,0,0,1,0,0);vctx.clearRect(0,0,view.width,view.height);render(vctx,S.W,S.H,vk,false,PCACHE,previewT);}
+function drawPreview(){vctx.setTransform(1,0,0,1,0,0);vctx.clearRect(0,0,view.width,view.height);render(vctx,S.W,S.H,vk,false,PCACHE,previewT);drawSplitGuides(vctx);}
 function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;drawPreview();});}
 function fit(){
   const bw=Math.max(40,wrap.clientWidth-32),bh=Math.max(40,wrap.clientHeight-32),r=S.W/S.H;
@@ -1129,6 +1146,7 @@ function syncExport(){$('#qRow').hidden=S.fmt==='png';$('#qOut').textContent=S.q
   $('#fnameAuto').hidden=S.fileAuto;$('#fnameHint').textContent=S.fileAuto?'첫 번째 사진 이름을 따라가요':'직접 정한 이름이에요';
   $('#expRead').textContent=fileName()+' · '+S.W+' × '+S.H+' px';
   if($('#gifRead').textContent)syncGif();
+  if($('#xsInfo')&&$('#xsInfo').textContent)syncXs();
   frameUpd.forEach(f=>f());sigUpd.forEach(f=>f());}
 
 let dlP=null;
@@ -1334,6 +1352,92 @@ async function exportGif(){
 }
 $('#gifBtn').onclick=exportGif;
 syncGif();
+
+/* ---------- X (Twitter) split: cut the finished image into 2-4 posts ---------- */
+const XS_SIZE={'16:9':[1920,1080],'3:4':[960,1280],'4:5':[1080,1350],'1:1':[1200,1200]};
+function xsCount(){return S.xs.dir==='g'?4:S.xs.n;}
+/* piece rectangles in output pixels; the gap strips between pieces are skipped so the post reads as one picture */
+function splitRects(W,H){
+  const n=xsCount(),g=Math.max(0,Math.round(S.xs.gap)),out=[];
+  if(S.xs.dir==='g'){const pw=Math.floor((W-g)/2),ph=Math.floor((H-g)/2);
+    [[0,0],[1,0],[0,1],[1,1]].forEach(([cx,cy])=>out.push({x:cx?W-pw:0,y:cy?H-ph:0,w:pw,h:ph}));return out;}
+  if(S.xs.dir==='h'){const pw=Math.floor((W-g*(n-1))/n);for(let i=0;i<n;i++)out.push({x:i===n-1?W-pw:i*(pw+g),y:0,w:pw,h:H});return out;}
+  const ph=Math.floor((H-g*(n-1))/n);for(let i=0;i<n;i++)out.push({x:0,y:i===n-1?H-ph:i*(ph+g),w:W,h:ph});return out;
+}
+function drawSplitGuides(x){
+  if(!S.xs.on||!photos.length)return;
+  const rs=splitRects(S.W,S.H),k=vk;x.save();x.setTransform(1,0,0,1,0,0);
+  x.fillStyle='rgba(220,60,60,.45)';
+  if(S.xs.gap>0){
+    if(S.xs.dir==='g'){const r0=rs[0],r3=rs[3];x.fillRect((r0.x+r0.w)*k,0,(r3.x-r0.x-r0.w)*k,S.H*k);x.fillRect(0,(r0.y+r0.h)*k,S.W*k,(r3.y-r0.y-r0.h)*k);}
+    else for(let i=0;i<rs.length-1;i++){const a=rs[i],b=rs[i+1];
+      if(S.xs.dir==='h')x.fillRect((a.x+a.w)*k,0,(b.x-a.x-a.w)*k,S.H*k);else x.fillRect(0,(a.y+a.h)*k,S.W*k,(b.y-a.y-a.h)*k);}
+  }
+  x.lineWidth=Math.max(1,window.devicePixelRatio||1);x.setLineDash([6*(window.devicePixelRatio||1),4*(window.devicePixelRatio||1)]);
+  const fs=Math.max(12,Math.min(S.W,S.H)*k*.05);x.font='700 '+fs+'px "NanumSquareNeo","Nanum Gothic",sans-serif';x.textAlign='center';x.textBaseline='middle';
+  rs.forEach((r,i)=>{
+    x.strokeStyle='rgba(255,255,255,.95)';x.strokeRect(r.x*k+.5,r.y*k+.5,r.w*k-1,r.h*k-1);
+    const cx=(r.x+r.w/2)*k,cy=(r.y+r.h/2)*k;x.fillStyle='rgba(20,20,24,.55)';x.beginPath();x.arc(cx,cy,fs*.9,0,Math.PI*2);x.fill();
+    x.fillStyle='#fff';x.fillText(String(i+1),cx,cy+fs*.04);
+  });
+  x.restore();
+}
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let j=0;j<8;j++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC_T[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+async function makeZip(files){
+  const enc=new TextEncoder(),parts=[],central=[];let off=0;
+  for(const f of files){
+    const data=new Uint8Array(await f.blob.arrayBuffer()),name=enc.encode(f.name),crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);
+    lh.setUint16(12,0x21,true);lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,name.length,true);
+    parts.push(new Uint8Array(lh.buffer),name,data);
+    const ch=new DataView(new ArrayBuffer(46));ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);
+    ch.setUint16(14,0x21,true);ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);ch.setUint16(28,name.length,true);ch.setUint32(42,off,true);
+    central.push(new Uint8Array(ch.buffer),name);off+=30+name.length+data.length;
+  }
+  const cs=central.reduce((a,b)=>a+b.length,0),end=new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,cs,true);end.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(end.buffer)],{type:'application/zip'});
+}
+let xsBusy=false;
+async function exportSplit(asZip){
+  if(xsBusy||busy)return;if(!photos.length){toast('먼저 사진을 넣어 주세요');return;}
+  xsBusy=true;const btns=[$('#xsSave'),$('#xsZip')];btns.forEach(b=>{b.disabled=true;b.dataset.t=b.textContent;});btns[asZip?1:0].textContent='나누는 중…';
+  try{
+    await fontReady();
+    const c=document.createElement('canvas');c.width=S.W;c.height=S.H;const x=c.getContext('2d');
+    render(x,S.W,S.H,1,true,{},(playing||paused)?previewT:null);
+    const mime={png:'image/png',jpg:'image/jpeg',webp:'image/webp'}[S.fmt],base=baseName().replace(/[\\/:*?"<>|]+/g,'-');
+    const files=[];
+    for(const [i,r] of splitRects(S.W,S.H).entries()){
+      const pc=document.createElement('canvas');pc.width=r.w;pc.height=r.h;pc.getContext('2d').drawImage(c,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
+      const blob=await new Promise(res=>pc.toBlob(res,mime,S.q/100));if(!blob)throw new Error('blob');
+      const ext=blob.type==='image/jpeg'?'jpg':blob.type==='image/webp'?'webp':'png';
+      files.push({name:base+'_'+(i+1)+'.'+ext,blob});
+    }
+    if(asZip)await saveBlob(await makeZip(files),base+'_X분할.zip');
+    else for(const f of files)await saveBlob(f.blob,f.name);
+  }catch(e){toast('나눠서 저장하지 못했어요. 크기를 줄여서 다시 해 보세요.');}
+  finally{xsBusy=false;btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.t;});syncXs();}
+}
+function syncXs(){
+  const on=!!S.xs.on;$('#xsOn').checked=on;$('#xsBody').hidden=!on;$('#xsOff').hidden=on;
+  [...$('#xsN').children].forEach(b=>{b.disabled=S.xs.dir==='g'&&b.dataset.v!=='4';});
+  const n=xsCount(),r=splitRects(S.W,S.H)[0];
+  $('#xsInfo').textContent=n+'장 · 한 장 '+r.w+' × '+r.h+'px ('+ratioText(r.w,r.h)+')'+(S.xs.gap>0?' · 사이 '+Math.round(S.xs.gap)+'px 버림':'');
+  $('#xsSave').textContent=n+'장 따로 저장';$('#xsGap').value=S.xs.gap;$('#xsGapOut').textContent=Math.round(S.xs.gap)+'px';
+}
+$('#xsOn').onchange=e=>{S.xs.on=e.target.checked;syncXs();schedule();persist();};
+seg('xsDir',()=>S.xs.dir,v=>{S.xs.dir=v;if(v==='g')S.xs.n=4;syncXs();});
+seg('xsN',()=>String(xsCount()),v=>{S.xs.n=+v;syncXs();});
+seg('xsRatio',()=>S.xs.ratio,v=>{S.xs.ratio=v;syncXs();});
+$('#xsGap').oninput=e=>{S.xs.gap=+e.target.value;syncXs();schedule();persist();};
+$('#xsFit').onclick=()=>{
+  const [pw,ph]=XS_SIZE[S.xs.ratio],n=xsCount(),g=Math.round(S.xs.gap);
+  const W=S.xs.dir==='g'?pw*2+g:S.xs.dir==='h'?pw*n+g*(n-1):pw,H=S.xs.dir==='g'?ph*2+g:S.xs.dir==='h'?ph:ph*n+g*(n-1);
+  S.lock=false;setSize(W,H);syncXs();toast('출력 크기를 '+W+' × '+H+'로 맞췄어요');};
+$('#xsSave').onclick=()=>exportSplit(false);$('#xsZip').onclick=()=>exportSplit(true);
+syncXs();
 
 /* ---------- misc ---------- */
 let tT=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(()=>t.hidden=true,2800);}
