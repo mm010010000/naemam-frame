@@ -105,6 +105,10 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 .num{font:500 15px var(--f-num);font-variant-numeric:tabular-nums}
 select{appearance:auto}
 .hint{font-size:11px;color:var(--faint);margin:0}
+.nfield{display:grid;grid-template-columns:78px minmax(0,1fr) auto;align-items:center;gap:10px}
+.nfield>label{font-size:12px;color:var(--mute)}
+.nin{display:inline-flex;align-items:center;gap:3px;font:11px var(--f-num);color:var(--mute)}
+.nin input{width:66px;padding:3px 6px;border:.5px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);font:12px var(--f-num)}
 .lbl{width:78px;flex-shrink:0;font-size:12px;color:var(--mute)}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:.5px solid var(--line-strong);border-radius:999px;height:32px;padding:0 14px;cursor:pointer;font-size:12px;color:var(--mute)}
@@ -269,12 +273,24 @@ input[type=color]{width:30px;height:24px;padding:0;border:.5px solid var(--line-
         <div class="layouts" id="layouts"></div>
         <div class="field" id="splitRow">
           <label for="split">첫 칸 비율</label>
-          <input id="split" type="range" min="20" max="80" step="1">
+          <input id="split" type="range" min="10" max="90" step="1">
           <output id="splitOut"></output>
         </div>
         <div class="row" style="gap:10px"><span class="lbl">사진 잇기</span>
           <div class="seg" id="joinType"><button type="button" data-v="gap">간격 두기</button><button type="button" data-v="soft">부드럽게</button></div>
         </div>
+        <div id="gapBox" style="display:grid;gap:10px">
+          <div id="gapOnly" style="display:grid;gap:10px">
+            <div class="row" style="gap:10px"><span class="lbl">간격 색</span><div class="seg" id="gapFill"><button type="button" data-v="bg">배경 비침</button><button type="button" data-v="stroke">테두리 색</button></div></div>
+            <label class="check" id="gapLinkRow"><input type="checkbox" class="switch" id="gapLink"> 세로·가로 간격 똑같이</label>
+            <div class="nfield"><label for="gap" id="gapLbl">간격</label><input id="gap" type="range" min="0" max="200" step="1"><span class="nin"><input id="gapN" type="number" min="0" step="1" aria-label="간격 px">px</span></div>
+            <div class="nfield" id="gap2Row"><label for="gap2" id="gap2Lbl">간격 2</label><input id="gap2" type="range" min="0" max="200" step="1"><span class="nin"><input id="gap2N" type="number" min="0" step="1" aria-label="두 번째 간격 px">px</span></div>
+          </div>
+          <div class="nfield" id="angRow"><label for="ang" id="angLbl">기울기</label><input id="ang" type="range" min="-60" max="60" step="1"><span class="nin"><input id="angN" type="number" min="-75" max="75" step="0.5" aria-label="기울기 각도">°</span></div>
+          <div class="nfield" id="ang2Row"><label for="ang2" id="ang2Lbl">기울기 2</label><input id="ang2" type="range" min="-60" max="60" step="1"><span class="nin"><input id="ang2N" type="number" min="-75" max="75" step="0.5" aria-label="두 번째 기울기 각도">°</span></div>
+          <p class="hint">미리보기에 마우스를 올리면 경계마다 동그란 손잡이가 생겨요. 손잡이를 돌리면 기울기, 경계선을 끌면 칸 크기가 바뀌어요.</p>
+        </div>
+        <button class="chip" id="frReset" type="button" style="justify-self:start" hidden>칸 비율 처음대로</button>
         <div class="field" id="softRow"><label for="soft">경계 폭</label><input id="soft" type="range" min="10" max="300"><output id="softOut"></output></div>
         <div class="field" id="softBlurRow"><label for="softBlur">경계 흐림</label><input id="softBlur" type="range" min="0" max="100"><output id="softBlurOut"></output></div>
       </section>
@@ -308,7 +324,6 @@ input[type=color]{width:30px;height:24px;padding:0;border:.5px solid var(--line-
         <div class="field" id="padRow"><label for="pad">바깥 여백</label><input id="pad" type="range" min="0" max="150"><output id="padOut"></output></div>
         <div class="field" id="padXRow" hidden><label for="padX">좌우 여백</label><input id="padX" type="range" min="0" max="250"><output id="padXOut"></output></div>
         <div class="field" id="padYRow" hidden><label for="padY">상하 여백</label><input id="padY" type="range" min="0" max="250"><output id="padYOut"></output></div>
-        <div class="field" id="gapRow"><label for="gap">사진 간격</label><input id="gap" type="range" min="0" max="80"><output id="gapOut"></output></div>
         <div class="field"><label for="radius">모서리</label><input id="radius" type="range" min="0" max="80"><output id="radiusOut"></output></div>
         <div class="field"><label for="stroke">테두리</label><input id="stroke" type="range" min="0" max="20"><output id="strokeOut"></output></div>
         <div class="row" style="gap:10px"><span class="lbl">테두리 색</span><div class="row" id="strokeSw"></div><input type="color" id="strokeColor" aria-label="테두리 색 직접 고르기"></div>
@@ -355,8 +370,15 @@ input[type=color]{width:30px;height:24px;padding:0;border:.5px solid var(--line-
         <div id="xsBody" style="display:grid;gap:12px">
           <div class="row" style="gap:10px"><span class="lbl">나누는 방향</span><div class="seg" id="xsDir"><button type="button" data-v="v">위→아래</button><button type="button" data-v="h">왼→오른</button><button type="button" data-v="g">2×2 격자</button></div></div>
           <div class="row" style="gap:10px"><span class="lbl">조각 수</span><div class="seg" id="xsN"><button type="button" data-v="2">2장</button><button type="button" data-v="3">3장</button><button type="button" data-v="4">4장</button></div></div>
-          <div class="row" style="gap:10px"><span class="lbl">조각 비율</span><div class="seg" id="xsRatio"><button type="button" data-v="16:9">16:9</button><button type="button" data-v="3:4">3:4</button><button type="button" data-v="4:5">4:5</button><button type="button" data-v="1:1">1:1</button></div></div>
-          <button class="chip" id="xsFit" type="button" style="justify-self:start">출력 크기를 이 비율에 맞추기</button>
+          <div class="row" style="gap:10px"><span class="lbl">조각 비율</span><div class="seg" id="xsRatio"><button type="button" data-v="16:9">16:9</button><button type="button" data-v="3:4">3:4</button><button type="button" data-v="4:5">4:5</button><button type="button" data-v="1:1">1:1</button><button type="button" data-v="custom">직접</button></div></div>
+          <div class="row" id="xsCustom" style="gap:10px"><span class="lbl">한 장 크기</span><span class="nin"><input id="xsCW" type="number" min="16" max="8192" step="1" aria-label="조각 너비 px">×</span><span class="nin"><input id="xsCH" type="number" min="16" max="8192" step="1" aria-label="조각 높이 px">px</span></div>
+          <button class="chip" id="xsFit" type="button" style="justify-self:start">출력 크기를 이 조각 크기에 맞추기</button>
+          <label class="check"><input type="checkbox" class="switch" id="xsFree"> 조각 크기 따로 정하기</label>
+          <div id="xsFreeBox" style="display:grid;gap:8px">
+            <div id="xsSizes" style="display:grid;gap:8px"></div>
+            <p class="hint">숫자를 바꾸면 전체 크기는 그대로 두고 나머지 조각이 남은 크기를 나눠 가져요. 미리보기의 흰 점선을 끌어도 돼요.</p>
+            <button class="chip" id="xsEven" type="button" style="justify-self:start">똑같이 나누기</button>
+          </div>
           <div class="field"><label for="xsGap">간격 보정</label><input id="xsGap" type="range" min="0" max="80"><output id="xsGapOut"></output></div>
           <p class="hint">간격 보정을 주면 조각 사이(빨간 띠)를 버려서, X의 사진 사이 틈 너머로 그림이 이어지는 것처럼 보여요.</p>
           <p class="hint" id="xsInfo"></p>
@@ -476,10 +498,10 @@ const LINE_SW=['#ffffff','#d5b16b','#0d0f14','#8fb8c9'];
 const SIG_SW=['#ffffff','#f1e2bd','#d5b16b','#0d0f14'];
 
 const DEF={W:1920,H:1080,lock:false,lockR:16/9,layout:{1:'single',2:'h2',3:'L1R2',4:'g4'},split:{},
-  freePan:false,pad:22,padSplit:false,padX:22,padY:22,gap:10,join:'soft',soft:90,softBlur:45,radius:0,stroke:0,strokeColor:'#ffffff',bgType:'solid',bg:'#0d0f14',dim:30,
+  freePan:false,fr:{},pad:22,padSplit:false,padX:22,padY:22,gap:10,gap2:10,gapLink:true,ang:0,ang2:0,gapFill:'bg',join:'soft',soft:90,softBlur:45,radius:0,stroke:0,strokeColor:'#ffffff',bgType:'solid',bg:'#0d0f14',dim:30,
   sig:{on:true,main:'이름',sub:'날짜',font:'NanumMyeongjo',font2:'NanumMyeongjo',size:40,size2:18,color:'#ffffff',opacity:92,pos:'br',inset:26,shadow:true},
   fmt:'png',q:92,file:'',fileAuto:true,mine:[],
-  xs:{on:false,dir:'v',n:4,ratio:'16:9',gap:0}};
+  xs:{on:false,dir:'v',n:4,ratio:'16:9',gap:0,cw:1200,ch:675,free:false,wv:[],wh:[],gx:[],gy:[]}};
 
 DEF.fx={sigToo:false,frame:false,fv:2,
   rain:{on:false,amount:5,length:100,angle:-8,opacity:60,mood:20,speed:10},
@@ -578,10 +600,70 @@ function lay(node,r,gap,out,root,split){
   let p=hz?r.x:r.y;
   node.c.forEach((ch,i)=>{const len=total*fr[i];lay(ch,hz?{x:p,y:r.y,w:len,h:r.h}:{x:r.x,y:p,w:r.w,h:len},gap,out,false,split);p+=len+gap;});
 }
+/* ---------- polygon layout: cells are convex polygons so seams can lean at any angle ---------- */
+function rectPoly(r){return [[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]];}
+function bboxOf(P){let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;for(const [x,y] of P){if(x<x0)x0=x;if(y<y0)y0=y;if(x>x1)x1=x;if(y>y1)y1=y;}
+  if(!P.length)return {x:0,y:0,w:0,h:0};return {x:x0,y:y0,w:Math.max(0,x1-x0),h:Math.max(0,y1-y0)};}
+/* keep the part of P where nx*x+ny*y <= c */
+function clipHalf(P,nx,ny,c){
+  const out=[];
+  for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],da=nx*a[0]+ny*a[1]-c,db=nx*b[0]+ny*b[1]-c;
+    if(da<=0)out.push(a);
+    if((da<0&&db>0)||(da>0&&db<0)){const t=da/(da-db);out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);}}
+  return out.filter((p,i)=>{const q=out[(i+1)%out.length];return out.length<2||Math.hypot(p[0]-q[0],p[1]-q[1])>1e-6;});
+}
+/* seams of the outer split use (g1,a1); seams inside a cell use (g2,a2). Every seam passes through the
+   centre line of the whole photo area, so parallel seams in a grid line up into one straight cut. */
+function layPoly(node,P,out,depth,split,o,anchor,path){
+  path=path||'r';const b=bboxOf(P);
+  if(typeof node==='number'){out[node]=Object.assign(b,{poly:P});return;}
+  const n=node.c.length,hz=node.d==='h',g=depth===0?o.g1:o.g2,a=(depth===0?o.a1:o.a2)*Math.PI/180;
+  let fr;
+  if(depth===0&&n===2)fr=[split,1-split];
+  else{const f=o.fr&&o.fr[path];if(Array.isArray(f)&&f.length===n&&f.every(v=>v>0)){const sm=f.reduce((a,c)=>a+c,0);fr=f.map(v=>v/sm);}else fr=Array(n).fill(1/n);}
+  const L=hz?b.w:b.h,total=Math.max(0,L-g*(n-1));
+  /* unit normal of the seam, pointing toward the next child */
+  const nx=hz?Math.cos(a):-Math.sin(a),ny=hz?-Math.sin(a):Math.cos(a);
+  const cs=[],lens=fr.map(f=>total*f),start=hz?b.x:b.y;let p=start;
+  for(let i=0;i<n-1;i++){const len=lens[i];const s=p+len+g/2;cs.push(hz?nx*s+ny*anchor[1]:nx*anchor[0]+ny*s);p+=len+g;}
+  if(o.seams)for(let i=0;i<n-1;i++)o.seams.push({path,i,n,depth,hz,nx,ny,c:cs[i],g,lens,start,total,P,anchor});
+  node.c.forEach((ch,i)=>{let Q=P;
+    if(i>0)Q=clipHalf(Q,-nx,-ny,-(cs[i-1]+g/2));
+    if(i<n-1)Q=clipHalf(Q,nx,ny,cs[i]-g/2);
+    layPoly(ch,Q,out,depth+1,split,o,anchor,path+'.'+i);});
+}
+function seamOpts(sh,l){const soft=S.join==='soft',g1=soft?0:S.gap/1000*sh,g2=soft?0:(S.gapLink?S.gap:S.gap2)/1000*sh;
+  return {g1,a1:+S.ang||0,g2,a2:+S.ang2||0,fr:l&&S.fr?S.fr[l.id]:null};}
+/* rounded convex polygon; each corner's radius is limited so neighbouring arcs never overlap */
+function polyAdd(x,P,r){
+  const n=P.length;if(n<3)return;
+  if(!(r>0)){x.moveTo(P[0][0],P[0][1]);for(let i=1;i<n;i++)x.lineTo(P[i][0],P[i][1]);x.closePath();return;}
+  const m0=[(P[n-1][0]+P[0][0])/2,(P[n-1][1]+P[0][1])/2];x.moveTo(m0[0],m0[1]);
+  for(let i=0;i<n;i++){const v=P[i],nv=P[(i+1)%n],pv=P[(i-1+n)%n];
+    const e1=[pv[0]-v[0],pv[1]-v[1]],e2=[nv[0]-v[0],nv[1]-v[1]],l1=Math.hypot(e1[0],e1[1]),l2=Math.hypot(e2[0],e2[1]);
+    const m=[(v[0]+nv[0])/2,(v[1]+nv[1])/2];
+    if(l1<1e-6||l2<1e-6){x.lineTo(m[0],m[1]);continue;}
+    const cosA=clamp((e1[0]*e2[0]+e1[1]*e2[1])/(l1*l2),-1,1),half=Math.acos(cosA)/2,rr0=Math.min(r,Math.min(l1,l2)/2*Math.tan(half));
+    x.arcTo(v[0],v[1],m[0],m[1],Math.max(0,rr0));}
+  x.closePath();
+}
+function inPoly(P,X,Y){let s=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],c=(b[0]-a[0])*(Y-a[1])-(b[1]-a[1])*(X-a[0]);
+  if(Math.abs(c)<1e-9)continue;const sg=c>0?1:-1;if(!s)s=sg;else if(sg!==s)return false;}return true;}
+/* frame pieces drawn over the photos: gap colour (when it follows the border colour) and borders */
+function drawFrameOver(x,W,H){
+  const sh=Math.min(W,H),rad=S.radius/1000*sh,lw=S.stroke/1000*sh,l=curLayout();
+  if(S.join==='soft'&&photos.length>1){
+    if(S.stroke>0){const c=softPlan(l,W,H).area;x.save();rr(x,c.x+lw/2,c.y+lw/2,c.w-lw,c.h-lw,Math.max(0,rad-lw/2));x.lineWidth=lw;x.strokeStyle=S.strokeColor;x.stroke();x.restore();}
+    return;}
+  const cells=cellsFor(l,W,H),list=cells.slice(0,photos.length).filter(c=>c&&c.poly&&c.poly.length>2);
+  if(S.gapFill==='stroke'&&photos.length>1){const a=cells.area;x.save();x.beginPath();rrAdd(x,a.x,a.y,a.w,a.h,rad);list.forEach(c=>polyAdd(x,c.poly,rad));
+    x.fillStyle=S.strokeColor;x.fill('evenodd');x.restore();}
+  if(S.stroke>0)list.forEach(c=>{x.save();x.beginPath();polyAdd(x,c.poly,rad);x.clip();x.beginPath();polyAdd(x,c.poly,rad);x.lineWidth=lw*2;x.strokeStyle=S.strokeColor;x.stroke();x.restore();});
+}
 /* outer margin in px: [left/right, top/bottom] */
 function padXY(sh){return S.padSplit?[S.padX/1000*sh,S.padY/1000*sh]:[S.pad/1000*sh,S.pad/1000*sh];}
-function cellsFor(l,W,H){const sh=Math.min(W,H),[px,py]=padXY(sh),gap=S.gap/1000*sh,out=[];
-  lay(l.t,{x:px,y:py,w:Math.max(1,W-2*px),h:Math.max(1,H-2*py)},gap,out,true,splitOf(l));return out;}
+function cellsFor(l,W,H){const sh=Math.min(W,H),[px,py]=padXY(sh),area={x:px,y:py,w:Math.max(1,W-2*px),h:Math.max(1,H-2*py)},out=[];
+  layPoly(l.t,rectPoly(area),out,0,splitOf(l),seamOpts(sh,l),[area.x+area.w/2,area.y+area.h/2]);out.area=area;return out;}
 /* where a photo sits inside cell c: scaled to cover the cell at any rotation, offset by px/py (fractions of the cell).
    Unless free movement is on, the offset is limited so the photo always covers the cell. */
 function place(p,c){
@@ -602,25 +684,25 @@ function rr(x,X,Y,w,h,r){x.beginPath();rrAdd(x,X,Y,w,h,r);}
 const HAS_FILTER=typeof CanvasRenderingContext2D!=='undefined'&&'filter' in CanvasRenderingContext2D.prototype;
 
 /* ---------- soft join: photos overlap at each seam and cross-fade ---------- */
+/* soft join: same seams (angles, cell ratios) as the gap mode, with zero gap; each cell grows by half the
+   blend band on its inner sides so neighbours overlap and cross-fade */
 function softPlan(l,W,H){
   const sh=Math.min(W,H),[px,py]=padXY(sh),n=photos.length;
   const area={x:px,y:py,w:Math.max(1,W-2*px),h:Math.max(1,H-2*py)};
-  const cells=[];lay(l.t,area,0,cells,true,splitOf(l));
-  const minDim=Math.min(...cells.slice(0,n).map(c=>Math.min(c.w,c.h)));
+  const o=seamOpts(sh,l);o.g1=0;o.g2=0;o.seams=[];const cells=[];
+  layPoly(l.t,rectPoly(area),cells,0,splitOf(l),o,[area.x+area.w/2,area.y+area.h/2]);
+  const live=cells.slice(0,n).filter(c=>c&&c.w>0&&c.h>0);
+  const minDim=live.length?Math.min(...live.map(c=>Math.min(c.w,c.h))):sh;
   const b=Math.max(1,Math.min(S.soft/1000*sh,minDim*.9)),e=Math.max(.5,sh*1e-4);
-  const plan=cells.slice(0,n).map((c,i)=>{
-    const s={l:c.x>area.x+e,r:c.x+c.w<area.x+area.w-e,t:c.y>area.y+e,b:c.y+c.h<area.y+area.h-e};
-    const x0=c.x-(s.l?b/2:0),y0=c.y-(s.t?b/2:0);
-    const d={x:x0,y:y0,w:c.x+c.w+(s.r?b/2:0)-x0,h:c.y+c.h+(s.b?b/2:0)-y0};
-    const fade={};
-    for(let j=0;j<i;j++){const o=cells[j];
-      const vOv=Math.min(o.y+o.h,c.y+c.h)-Math.max(o.y,c.y)>e,hOv=Math.min(o.x+o.w,c.x+c.w)-Math.max(o.x,c.x)>e;
-      if(vOv&&Math.abs(o.x+o.w-c.x)<e)fade.l=true;if(vOv&&Math.abs(c.x+c.w-o.x)<e)fade.r=true;
-      if(hOv&&Math.abs(o.y+o.h-c.y)<e)fade.t=true;if(hOv&&Math.abs(c.y+c.h-o.y)<e)fade.b=true;}
-    return {c,d,fade};
+  const maxA=Math.max(Math.abs(+S.ang||0),Math.abs(+S.ang2||0))*Math.PI/180,ex=b/2/Math.max(.26,Math.cos(maxA));
+  const plan=cells.slice(0,n).map(c=>{
+    const sd={l:c.x>area.x+e,r:c.x+c.w<area.x+area.w-e,t:c.y>area.y+e,b:c.y+c.h<area.y+area.h-e};
+    const x0=c.x-(sd.l?ex:0),y0=c.y-(sd.t?ex:0);
+    return {c,d:{x:x0,y:y0,w:c.x+c.w+(sd.r?ex:0)-x0,h:c.y+c.h+(sd.b?ex:0)-y0}};
   });
-  return {area,b,plan};
+  return {area,b,plan,seams:o.seams};
 }
+function seamPt(sm){return sm.hz?[(sm.c-sm.ny*sm.anchor[1])/sm.nx,sm.anchor[1]]:[sm.anchor[0],(sm.c-sm.nx*sm.anchor[0])/sm.ny];}
 function boxes(W,H){const l=curLayout();
   if(S.join==='soft'&&photos.length>1)return softPlan(l,W,H).plan.map(p=>({c:p.c,d:p.d}));
   return cellsFor(l,W,H).map(c=>({c,d:c}));}
@@ -633,29 +715,27 @@ const RAMP=[[0,0],[.15,.06],[.3,.22],[.5,.5],[.7,.78],[.85,.94],[1,1]];
 const PEAK=[[0,0],[.15,.22],[.3,.65],[.5,1],[.7,.65],[.85,.22],[1,0]];
 function grad(x,x0,y0,x1,y1,stops){const g=x.createLinearGradient(x0,y0,x1,y1);stops.forEach(([o,a])=>g.addColorStop(o,'rgba(0,0,0,'+a+')'));return g;}
 function drawSoft(x,W,H,k,full,l,cache,jt){
-  const {area,b,plan}=softPlan(l,W,H),sh=Math.min(W,H),rad=S.radius/1000*sh;
-  const [A,ax]=getC(cache,'A',Math.ceil(area.w*k),Math.ceil(area.h*k));
-  ax.setTransform(k,0,0,k,-area.x*k,-area.y*k);
-  plan.forEach((pl,i)=>{const p=photos[i],d=pl.d,f=pl.fade;
-    const [P,px]=getC(cache,'P',Math.ceil(d.w*k)+1,Math.ceil(d.h*k)+1);
-    px.setTransform(k,0,0,k,-d.x*k,-d.y*k);drawPlaced(px,p,d,full?p.img:p.prev);
-    px.globalCompositeOperation='destination-in';
-    if(f.l){px.fillStyle=grad(px,d.x,0,d.x+b,0,RAMP);px.fillRect(d.x,d.y,d.w,d.h);}
-    if(f.r){px.fillStyle=grad(px,d.x+d.w,0,d.x+d.w-b,0,RAMP);px.fillRect(d.x,d.y,d.w,d.h);}
-    if(f.t){px.fillStyle=grad(px,0,d.y,0,d.y+b,RAMP);px.fillRect(d.x,d.y,d.w,d.h);}
-    if(f.b){px.fillStyle=grad(px,0,d.y+d.h,0,d.y+d.h-b,RAMP);px.fillRect(d.x,d.y,d.w,d.h);}
-    px.globalCompositeOperation='source-over';
-    ax.drawImage(P,d.x,d.y,P.width/k,P.height/k);
-  });
+  const {area,b,plan,seams}=softPlan(l,W,H),sh=Math.min(W,H),rad=S.radius/1000*sh;
+  const AW=Math.ceil(area.w*k),AH=Math.ceil(area.h*k),tf=c=>c.setTransform(k,0,0,k,-area.x*k,-area.y*k);
+  /* composite the layout tree bottom-up: each later child fades in across its seam over the earlier ones */
+  function comp(node,path){
+    if(typeof node==='number'){const [L,lx]=getC(cache,'sL'+path,AW,AH);tf(lx);const pl=plan[node],p=photos[node];
+      if(pl&&p)drawPlaced(lx,p,pl.d,full?p.img:p.prev);return L;}
+    const base=comp(node.c[0],path+'.0'),bc=base.getContext('2d');
+    for(let i=1;i<node.c.length;i++){
+      const L=comp(node.c[i],path+'.'+i),lx=L.getContext('2d'),sm=seams.find(q=>q.path===path&&q.i===i-1);
+      if(sm){const q=seamPt(sm);tf(lx);lx.globalCompositeOperation='destination-in';
+        lx.fillStyle=grad(lx,q[0]-sm.nx*b/2,q[1]-sm.ny*b/2,q[0]+sm.nx*b/2,q[1]+sm.ny*b/2,RAMP);lx.fillRect(area.x-b,area.y-b,area.w+2*b,area.h+2*b);
+        lx.globalCompositeOperation='source-over';}
+      bc.setTransform(1,0,0,1,0,0);bc.globalCompositeOperation='source-over';bc.drawImage(L,0,0);}
+    return base;
+  }
+  const A=comp(l.t,'r'),ax=A.getContext('2d');
   const amt=S.softBlur/100;
   if(amt>0&&HAS_FILTER){
     const [M,mx]=getC(cache,'M',A.width,A.height);mx.setTransform(k,0,0,k,-area.x*k,-area.y*k);
-    plan.forEach(({c,fade:f})=>{
-      if(f.l){mx.fillStyle=grad(mx,c.x-b/2,0,c.x+b/2,0,PEAK);mx.fillRect(c.x-b/2,c.y,b,c.h);}
-      if(f.r){const sx=c.x+c.w;mx.fillStyle=grad(mx,sx-b/2,0,sx+b/2,0,PEAK);mx.fillRect(sx-b/2,c.y,b,c.h);}
-      if(f.t){mx.fillStyle=grad(mx,0,c.y-b/2,0,c.y+b/2,PEAK);mx.fillRect(c.x,c.y-b/2,c.w,b);}
-      if(f.b){const sy=c.y+c.h;mx.fillStyle=grad(mx,0,sy-b/2,0,sy+b/2,PEAK);mx.fillRect(c.x,sy-b/2,c.w,b);}
-    });
+    seams.forEach(sm=>{const q=seamPt(sm);mx.save();mx.beginPath();polyAdd(mx,sm.P,0);mx.clip();
+      mx.fillStyle=grad(mx,q[0]-sm.nx*b/2,q[1]-sm.ny*b/2,q[0]+sm.nx*b/2,q[1]+sm.ny*b/2,PEAK);mx.fillRect(area.x-b,area.y-b,area.w+2*b,area.h+2*b);mx.restore();});
     const [B,bx]=getC(cache,'B',A.width,A.height);
     bx.filter='blur('+Math.max(.5,b*.2*amt*k).toFixed(2)+'px)';bx.drawImage(A,0,0);bx.filter='none';
     bx.globalCompositeOperation='destination-in';bx.drawImage(M,0,0);bx.globalCompositeOperation='source-over';
@@ -679,16 +759,16 @@ function drawBase(x,W,H,k,full,cache,jt){
     x.fillStyle='rgba(0,0,0,'+(S.dim/100)+')';x.fillRect(0,0,W,H);}
   const l=curLayout(),cells=cellsFor(l,W,H),rad=S.radius/1000*sh;
   if(!photos.length){
-    if(full)return;const c=cells[0];x.save();rr(x,c.x,c.y,c.w,c.h,rad);x.fillStyle='rgba(255,255,255,.04)';x.fill();
+    if(full)return;const c=cells[0];x.save();x.beginPath();polyAdd(x,c.poly,rad);x.fillStyle='rgba(255,255,255,.04)';x.fill();
     x.setLineDash([sh*.012,sh*.01]);x.lineWidth=Math.max(1,sh*.002);x.strokeStyle='rgba(107,127,215,.7)';x.stroke();x.restore();
     x.fillStyle='rgba(235,230,218,.7)';x.textAlign='center';x.textBaseline='middle';x.font='500 '+(sh*.034)+'px "NanumSquareNeo","Nanum Gothic",sans-serif';
     x.fillText('사진을 끌어다 놓거나 Ctrl+V로 붙여넣으세요',W/2,H/2);
   }
   if(S.join==='soft'&&photos.length>1){drawSoft(x,W,H,k,full,l,cache,jt);return;}
-  photos.forEach((p,i)=>{const c=cells[i];if(!c)return;
-    x.save();rr(x,c.x,c.y,c.w,c.h,rad);x.clip();if(jt!=null)jitterIn(x,c,jt,i+1);drawPlaced(x,p,c,full?p.img:p.prev);x.restore();
-    if(S.stroke>0&&!strokesLater()){const lw=S.stroke/1000*sh;x.save();rr(x,c.x+lw/2,c.y+lw/2,c.w-lw,c.h-lw,Math.max(0,rad-lw/2));x.lineWidth=lw;x.strokeStyle=S.strokeColor;x.stroke();x.restore();}
+  photos.forEach((p,i)=>{const c=cells[i];if(!c||!c.poly||c.poly.length<3)return;
+    x.save();x.beginPath();polyAdd(x,c.poly,rad);x.clip();if(jt!=null)jitterIn(x,c,jt,i+1);drawPlaced(x,p,c,full?p.img:p.prev);x.restore();
   });
+  if(photos.length&&!strokesLater())drawFrameOver(x,W,H);
 }
 /* t is null for still images; motion (sizzle) only shows in the moving preview and GIFs */
 function render(x,W,H,k,full,cache,t){
@@ -721,15 +801,10 @@ function sizzleWhole(x,cache,t){
 /* effects on the whole canvas, or only inside the photos (frame and gaps left clean) */
 /* with the frame excluded from effects, borders are drawn once, after the effects */
 function strokesLater(){return anyFx()&&!S.fx.frame&&photos.length>0;}
-function drawStrokes(x,W,H){
-  const sh=Math.min(W,H),rad=S.radius/1000*sh,lw=S.stroke/1000*sh,l=curLayout();
-  const rects=(S.join==='soft'&&photos.length>1)?[softPlan(l,W,H).area]:cellsFor(l,W,H).slice(0,photos.length);
-  rects.forEach(c=>{x.save();rr(x,c.x+lw/2,c.y+lw/2,c.w-lw,c.h-lw,Math.max(0,rad-lw/2));x.lineWidth=lw;x.strokeStyle=S.strokeColor;x.stroke();x.restore();});
-}
 function photoPath(x,W,H){
   const sh=Math.min(W,H),rad=S.radius/1000*sh,l=curLayout();x.beginPath();
   if(S.join==='soft'&&photos.length>1){const a=softPlan(l,W,H).area;rrAdd(x,a.x,a.y,a.w,a.h,rad);}
-  else cellsFor(l,W,H).slice(0,photos.length).forEach(c=>rrAdd(x,c.x,c.y,c.w,c.h,rad));
+  else cellsFor(l,W,H).slice(0,photos.length).forEach(c=>{if(c&&c.poly)polyAdd(x,c.poly,rad);});
 }
 function applyFxScoped(x,W,H,k,cache,t){
   if(S.fx.frame||!photos.length){applyFx(x,cache,t);return;}
@@ -740,7 +815,7 @@ function applyFxScoped(x,W,H,k,cache,t){
   applyFx(actx,cache,t);
   x.save();x.setTransform(k,0,0,k,0,0);photoPath(x,W,H);x.clip();x.setTransform(1,0,0,1,0,0);x.globalCompositeOperation='source-over';x.globalAlpha=1;x.drawImage(A,ax,ay);x.restore();
   /* borders belong to the frame: draw them again, clean, over the effect */
-  if(S.stroke>0){x.save();x.setTransform(k,0,0,k,0,0);x.globalCompositeOperation='source-over';x.globalAlpha=1;drawStrokes(x,W,H);x.restore();}
+  x.save();x.setTransform(k,0,0,k,0,0);x.globalCompositeOperation='source-over';x.globalAlpha=1;drawFrameOver(x,W,H);x.restore();
 }
 function fontById(id){return FONTS.find(f=>f.id===id)||FONTS[0];}
 function curFont(){return fontById(S.sig.font);}
@@ -949,7 +1024,7 @@ function fxVignette(x,Wd,Hd,o){const cx=Wd/2,cy=Hd/2,R=Math.hypot(cx,cy);const g
 /* ---------- preview ---------- */
 const view=$('#view'),vctx=view.getContext('2d'),wrap=$('#viewWrap');
 let vk=1,cssW=1,cssH=1,raf=0,previewT=null;
-function drawPreview(){vctx.setTransform(1,0,0,1,0,0);vctx.clearRect(0,0,view.width,view.height);render(vctx,S.W,S.H,vk,false,PCACHE,previewT);drawSplitGuides(vctx);placeHandle();}
+function drawPreview(){vctx.setTransform(1,0,0,1,0,0);vctx.clearRect(0,0,view.width,view.height);render(vctx,S.W,S.H,vk,false,PCACHE,previewT);drawSplitGuides(vctx);drawSeamUI(vctx);placeHandle();}
 function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;drawPreview();});}
 function fit(){
   const bw=Math.max(40,wrap.clientWidth-32),bh=Math.max(40,wrap.clientHeight-32),r=S.W/S.H;
@@ -963,15 +1038,17 @@ new ResizeObserver(fit).observe(wrap);
 
 function hit(e){const r=view.getBoundingClientRect();const X=(e.clientX-r.left)/r.width*S.W,Y=(e.clientY-r.top)/r.height*S.H;
   const bx=boxes(S.W,S.H);
-  for(let i=0;i<photos.length;i++){const o=bx[i];if(!o)continue;const c=o.c;if(X>=c.x&&X<=c.x+c.w&&Y>=c.y&&Y<=c.y+c.h)return {i,c:o.d};}return null;}
+  for(let i=0;i<photos.length;i++){const o=bx[i];if(!o)continue;const c=o.c;if(X>=c.x&&X<=c.x+c.w&&Y>=c.y&&Y<=c.y+c.h&&(!c.poly||inPoly(c.poly,X,Y)))return {i,c:o.d};}return null;}
 let drag=null;
-view.addEventListener('pointerdown',e=>{const h=hit(e);if(!h)return;view.setPointerCapture(e.pointerId);
+view.addEventListener('pointerdown',e=>{if(xsDivDown(e))return;if(seamDown(e))return;const h=hit(e);if(!h)return;view.setPointerCapture(e.pointerId);
   selIdx=h.i;const p=photos[h.i];clampPan(p,h.c);drag={p,c:h.c,sx:e.clientX,sy:e.clientY,px:p.px,py:p.py};view.style.cursor='grabbing';});
 view.addEventListener('pointermove',e=>{
+  if(!drag&&xsDivMove(e))return;
+  if(!drag&&seamMove(e))return;
   if(!drag){const h=hit(e);view.style.cursor=h?'grab':'default';if(h&&!rotDrag&&h.i!==selIdx){selIdx=h.i;placeHandle();}return;}
   const r=view.getBoundingClientRect(),dX=(e.clientX-drag.sx)/r.width*S.W,dY=(e.clientY-drag.sy)/r.height*S.H;
   drag.p.px=drag.px+dX/drag.c.w;drag.p.py=drag.py+dY/drag.c.h;clampPan(drag.p,drag.c);schedule();});
-const endDrag=()=>{if(drag){drag=null;view.style.cursor='grab';}};
+const endDrag=()=>{xsDivUp();seamUp();if(drag){drag=null;view.style.cursor='grab';}};
 view.addEventListener('pointerup',endDrag);view.addEventListener('pointercancel',endDrag);
 view.addEventListener('wheel',e=>{const h=hit(e);if(!h)return;e.preventDefault();const p=photos[h.i];
   p.zoom=clamp(p.zoom*Math.exp(-e.deltaY*.0015),zoomMin(),6);const z=document.getElementById('z'+p.id);if(z&&z._sync)z._sync();schedule();},{passive:false});
@@ -1002,6 +1079,80 @@ const freePanEl=$('#freePan');freePanEl.checked=!!S.freePan;
 freePanEl.onchange=()=>{S.freePan=freePanEl.checked;
   if(!S.freePan){const bx=boxes(S.W,S.H);photos.forEach((p,i)=>{p.zoom=Math.max(1,p.zoom);if(bx[i])clampPan(p,bx[i].d);});}
   renderPhotos();schedule();persist();};
+
+/* ---------- seams in the preview: drag a knob to tilt, drag the line to move it ---------- */
+function lineInPoly(P,pt,d){
+  let a2=0;for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length];a2+=p[0]*q[1]-q[0]*p[1];}
+  const sg=a2>0?1:-1;let lo=-Infinity,hi=Infinity;
+  for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],ex=b[0]-a[0],ey=b[1]-a[1];
+    const A=sg*(ex*(pt[1]-a[1])-ey*(pt[0]-a[0])),B=sg*(ex*d[1]-ey*d[0]);
+    if(Math.abs(B)<1e-9){if(A<0)return [0,0];continue;}
+    const t=-A/B;if(B>0)lo=Math.max(lo,t);else hi=Math.min(hi,t);}
+  return lo<hi?[lo,hi]:[0,0];
+}
+function seamList(){
+  if(photos.length<2)return [];
+  const l=curLayout(),sh=Math.min(S.W,S.H),[px,py]=padXY(sh),area={x:px,y:py,w:Math.max(1,S.W-2*px),h:Math.max(1,S.H-2*py)};
+  const o=seamOpts(sh,l);o.seams=[];layPoly(l.t,rectPoly(area),[],0,splitOf(l),o,[area.x+area.w/2,area.y+area.h/2]);
+  return o.seams.map(sm=>{
+    const d=[sm.ny,-sm.nx],pt=seamPt(sm);
+    const [t0,t1]=lineInPoly(sm.P,pt,d),e0=[pt[0]+d[0]*t0,pt[1]+d[1]*t0],e1=[pt[0]+d[0]*t1,pt[1]+d[1]*t1];
+    const first=sm.hz?(e0[1]<e1[1]?e0:e1):(e0[0]>e1[0]?e0:e1),other=first===e0?e1:e0;
+    const knob=[first[0]+(other[0]-first[0])*.14,first[1]+(other[1]-first[1])*.14];
+    return Object.assign(sm,{l,d,pt,t0,t1,e0,e1,knob,len:t1-t0});
+  }).filter(sm=>sm.len>4);
+}
+var seamUI=false,seamHover=null,seamDrag=null;
+function viewPt(e){const r=view.getBoundingClientRect();return {X:(e.clientX-r.left)/r.width*S.W,Y:(e.clientY-r.top)/r.height*S.H,sc:r.width/S.W};}
+function seamHit(e){
+  const {X,Y,sc}=viewPt(e),list=seamList(),tolK=11/sc,tolL=7/sc;
+  for(const sm of list)if(Math.hypot(X-sm.knob[0],Y-sm.knob[1])<tolK)return {sm,kind:'rot'};
+  for(const sm of list){const vx=X-sm.pt[0],vy=Y-sm.pt[1],t=vx*sm.d[0]+vy*sm.d[1],dist=Math.abs(vx*sm.nx+vy*sm.ny);
+    if(dist<Math.max(tolL,sm.g/2)&&t>sm.t0&&t<sm.t1)return {sm,kind:'move'};}
+  return null;
+}
+function drawSeamUI(x){
+  if(!seamUI)return;const list=seamList();if(!list.length)return;
+  const k=vk,dpr=view.width/view.getBoundingClientRect().width||1;x.save();x.setTransform(1,0,0,1,0,0);
+  const act=seamDrag?seamDrag.sm:seamHover&&seamHover.sm;
+  list.forEach(sm=>{const same=act&&act.path===sm.path&&act.i===sm.i;
+    if(same){x.strokeStyle='rgba(107,127,215,.95)';x.lineWidth=2*dpr;x.setLineDash([6*dpr,4*dpr]);x.beginPath();x.moveTo(sm.e0[0]*k,sm.e0[1]*k);x.lineTo(sm.e1[0]*k,sm.e1[1]*k);x.stroke();x.setLineDash([]);}
+    const cx=sm.knob[0]*k,cy=sm.knob[1]*k,r=8*dpr;
+    x.beginPath();x.arc(cx,cy,r+2*dpr,0,Math.PI*2);x.fillStyle='rgba(20,20,24,.35)';x.fill();
+    x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.fillStyle='#fff';x.fill();x.lineWidth=2*dpr;x.strokeStyle='#6b7fd7';x.stroke();
+    x.beginPath();x.moveTo(cx-sm.d[0]*r*.55,cy-sm.d[1]*r*.55);x.lineTo(cx+sm.d[0]*r*.55,cy+sm.d[1]*r*.55);x.lineWidth=1.6*dpr;x.stroke();});
+  x.restore();
+}
+function seamDown(e){const h=seamHit(e);if(!h)return false;view.setPointerCapture(e.pointerId);seamDrag=h;return true;}
+function seamMove(e){
+  if(!seamDrag){const h=seamHit(e),was=seamHover;seamHover=h;
+    if(h){view.style.cursor=h.kind==='rot'?'grab':(h.sm.hz?'col-resize':'row-resize');}
+    if(!!was!==!!h||(was&&h&&(was.sm.path!==h.sm.path||was.sm.i!==h.sm.i||was.kind!==h.kind)))schedule();
+    return !!h;}
+  const sm=seamDrag.sm,{X,Y}=viewPt(e),l=sm.l;
+  if(seamDrag.kind==='rot'){
+    let vx=X-sm.pt[0],vy=Y-sm.pt[1];
+    let a=sm.hz?(vy>0&&(vx=-vx,vy=-vy),Math.atan2(-vx,-vy)):(vx<0&&(vx=-vx,vy=-vy),Math.atan2(vy,vx));
+    a=a*180/Math.PI;if(e.shiftKey)a=Math.round(a/5)*5;a=clamp(Math.round(a*10)/10,-75,75);
+    if(sm.depth===0)S.ang=a;else S.ang2=a;
+    rotRead.textContent=fmtDeg(a)+'°';const vr=view.getBoundingClientRect(),wr=wrap.getBoundingClientRect(),sc=vr.width/S.W;
+    rotRead.style.left=(vr.left-wr.left+sm.knob[0]*sc)+'px';rotRead.style.top=(vr.top-wr.top+sm.knob[1]*sc)+'px';rotRead.hidden=false;
+  }else{
+    const c2=sm.nx*X+sm.ny*Y,s2=sm.hz?(c2-sm.ny*sm.anchor[1])/sm.nx:(c2-sm.nx*sm.anchor[0])/sm.ny;
+    let st=sm.start;for(let j=0;j<sm.i;j++)st+=sm.lens[j]+sm.g;
+    const pair=sm.lens[sm.i]+sm.lens[sm.i+1],minL=sm.total*.05,li=clamp(s2-sm.g/2-st,minL,pair-minL),L=sm.lens.slice();
+    L[sm.i]=li;L[sm.i+1]=pair-li;const fr=L.map(v=>v/sm.total);
+    if(sm.depth===0&&sm.n===2){S.split[l.id]=clamp(fr[0],.1,.9);const v=Math.round(S.split[l.id]*100);$('#split').value=v;$('#splitOut').textContent=v+':'+(100-v);}
+    else{S.fr=S.fr||{};S.fr[l.id]=S.fr[l.id]||{};S.fr[l.id][sm.path]=fr;}
+    $('#frReset').hidden=false;
+  }
+  gapSyncs.forEach(f=>f());schedule();return true;
+}
+function seamUp(){if(!seamDrag)return false;seamDrag=null;rotRead.hidden=true;persist();refreshIcons();renderFromPhoto();return true;}
+view.addEventListener('pointerenter',()=>{seamUI=true;schedule();});
+wrap.addEventListener('pointerleave',()=>{if(!seamDrag){seamUI=false;seamHover=null;schedule();}});
+$('#frReset').onclick=()=>{const l=curLayout();if(S.fr)delete S.fr[l.id];delete S.split[l.id];renderLayouts();syncFrReset();schedule();persist();toast('칸 비율을 처음대로 되돌렸어요');};
+function syncFrReset(){const l=curLayout();$('#frReset').hidden=!(photos.length>1&&((S.fr&&S.fr[l.id]&&Object.keys(S.fr[l.id]).length)||typeof S.split[l.id]==='number'));}
 
 /* ---------- photo list ---------- */
 const ICON={fh:'<path d="M8 2v12"/><path d="M6 4.5L2.5 8 6 11.5z"/><path d="M10 4.5l3.5 3.5-3.5 3.5z"/>',fv:'<path d="M2 8h12"/><path d="M4.5 6L8 2.5 11.5 6z"/><path d="M4.5 10L8 13.5 11.5 10z"/>',
@@ -1077,13 +1228,13 @@ window.addEventListener('paste',e=>{const t=e.target;if(t&&(t.tagName==='INPUT'&
 
 /* ---------- layouts ---------- */
 function layoutIcon(l){const r=S.W/S.H;let w=46,h=w/r;if(h>30){h=30;w=h*r;}const ox=(48-w)/2,oy=(32-h)/2,out=[];
-  lay(l.t,{x:ox,y:oy,w,h},1.6,out,true,splitOf(l));
-  return '<svg viewBox="0 0 48 32" aria-hidden="true">'+out.map(c=>'<rect x="'+c.x.toFixed(1)+'" y="'+c.y.toFixed(1)+'" width="'+Math.max(.5,c.w).toFixed(1)+'" height="'+Math.max(.5,c.h).toFixed(1)+'" rx="1.2" fill="currentColor" opacity=".85"/>').join('')+'</svg>';}
+  const ang=true;layPoly(l.t,rectPoly({x:ox,y:oy,w,h}),out,0,splitOf(l),{g1:1.6,a1:ang?S.ang:0,g2:1.6,a2:ang?S.ang2:0,fr:ang&&S.fr?S.fr[l.id]:null},[ox+w/2,oy+h/2]);
+  return '<svg viewBox="0 0 48 32" aria-hidden="true">'+out.filter(c=>c&&c.poly.length>2).map(c=>'<path d="M'+c.poly.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L')+'Z" fill="currentColor" opacity=".85"/>').join('')+'</svg>';}
 function renderLayouts(){
   const n=Math.max(1,photos.length),list=LAYOUTS[n],cur=curLayout(),box=$('#layouts');box.textContent='';
   list.forEach(l=>{const b=document.createElement('button');b.type='button';b.className='lay';b.setAttribute('aria-pressed',l.id===cur.id);
     b.innerHTML=layoutIcon(l)+'<span></span>';b.lastChild.textContent=l.name;
-    b.onclick=()=>{S.layout[n]=l.id;renderLayouts();schedule();persist();};box.appendChild(b);});
+    b.onclick=()=>{S.layout[n]=l.id;renderLayouts();syncGapUI();schedule();persist();};box.appendChild(b);});
   $('#layName').textContent=n+'장 · '+cur.name;
   const sr=$('#splitRow');sr.hidden=!hasSplit(cur);
   if(hasSplit(cur)){const v=Math.round(splitOf(cur)*100);$('#split').value=v;$('#splitOut').textContent=v+':'+(100-v);}
@@ -1162,12 +1313,41 @@ function renderMine(){
   box.appendChild(add);syncSize();
 }
 
+/* ---------- gap distance / colour / angle ---------- */
+function shNow(){return Math.min(S.W,S.H);}
+function bindPair(rid,nid,key,toNum,fromNum){
+  const r=$('#'+rid),n=$('#'+nid);
+  const sync=()=>{r.value=S[key];if(document.activeElement!==n)n.value=toNum(S[key]);};
+  r.addEventListener('input',()=>{S[key]=+r.value;n.value=toNum(S[key]);changed();});
+  n.addEventListener('input',()=>{const v=parseFloat(n.value);if(!isFinite(v))return;S[key]=fromNum(v);r.value=S[key];changed();});
+  n.addEventListener('change',()=>{n.value=toNum(S[key]);});
+  return sync;
+}
+function changed(){schedule();persist();renderFromPhoto();refreshIcons();}
+function refreshIcons(){const n=Math.max(1,photos.length);[...$('#layouts').children].forEach((b,i)=>{const L=LAYOUTS[n][i];if(L&&b.firstChild)b.firstChild.outerHTML=layoutIcon(L);});}
+const pxOf=v=>Math.round(v/1000*shNow()),fromPx=v=>Math.max(0,v/shNow()*1000),degOf=v=>Math.round(v*10)/10,fromDeg=v=>clamp(v,-75,75);
+const gapSyncs=[bindPair('gap','gapN','gap',pxOf,fromPx),bindPair('ang','angN','ang',degOf,fromDeg),bindPair('gap2','gap2N','gap2',pxOf,fromPx),bindPair('ang2','ang2N','ang2',degOf,fromDeg)];
+function syncGapUI(){
+  if(typeof syncFrReset==='function'&&$('#frReset'))syncFrReset();
+  const l=curLayout(),t=l.t,show=photos.length>1&&t&&t.c,soft=S.join==='soft';
+  $('#gapBox').hidden=!show;
+  if(show){const dn=d=>d==='h'?'세로':'가로',sub=t.c.find(c=>typeof c!=='number'),linked=S.gapLink||!sub;
+    $('#gapOnly').hidden=soft;$('#gapLinkRow').hidden=!sub;
+    $('#gapLbl').textContent=linked?'간격':dn(t.d)+' 간격';
+    $('#gap2Row').hidden=linked;if(sub)$('#gap2Lbl').textContent=dn(sub.d)+' 간격';
+    $('#angLbl').textContent=dn(t.d)+' 기울기';$('#ang2Row').hidden=!sub;if(sub)$('#ang2Lbl').textContent=dn(sub.d)+' 기울기';}
+  $('#gapLink').checked=!!S.gapLink;
+  [...$('#gapFill').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.gapFill));
+  gapSyncs.forEach(f=>f());
+}
+$('#gapLink').onchange=e=>{S.gapLink=e.target.checked;if(!S.gapLink)S.gap2=S.gap;syncGapUI();changed();};
+
 /* ---------- frame ---------- */
 function px(v){return Math.round(v/1000*Math.min(S.W,S.H))+'px';}
 function bindRange(id,key,fmt){const el=$('#'+id),out=$('#'+id+'Out');el.value=S[key];
   const upd=()=>{out.textContent=fmt(S[key]);};upd();
   el.addEventListener('input',()=>{S[key]=+el.value;upd();schedule();persist();if(key==='pad'||key==='padX'||key==='padY'||key==='gap')renderFromPhoto();});return upd;}
-const frameUpd=[bindRange('soft','soft',px),bindRange('softBlur','softBlur',v=>v+'%'),bindRange('pad','pad',px),bindRange('padX','padX',px),bindRange('padY','padY',px),bindRange('gap','gap',px),bindRange('radius','radius',px),bindRange('stroke','stroke',px),bindRange('dim','dim',v=>v+'%')];
+const frameUpd=[bindRange('soft','soft',px),bindRange('softBlur','softBlur',v=>v+'%'),bindRange('pad','pad',px),bindRange('padX','padX',px),bindRange('padY','padY',px),bindRange('radius','radius',px),bindRange('stroke','stroke',px),bindRange('dim','dim',v=>v+'%')];
 function swatches(boxId,list,get,set,inputId){
   const box=$('#'+boxId),inp=$('#'+inputId);
   const sync=()=>{[...box.children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.c.toLowerCase()===get().toLowerCase()));inp.value=get();};
@@ -1187,8 +1367,9 @@ function syncPad(){padSplit.checked=!!S.padSplit;$('#padRow').hidden=!!S.padSpli
 padSplit.onchange=()=>{S.padSplit=padSplit.checked;if(S.padSplit){S.padX=S.pad;S.padY=S.pad;}else{S.pad=Math.round((S.padX+S.padY)/2);}
   syncPad();renderFromPhoto();schedule();persist();};
 syncPad();
-function syncJoin(){const soft=S.join==='soft';$('#gapRow').hidden=soft;$('#softRow').hidden=!soft;$('#softBlurRow').hidden=!soft||!HAS_FILTER;}
-seg('joinType',()=>S.join,v=>{S.join=v;syncJoin();renderFromPhoto();});syncJoin();
+function syncJoin(){const soft=S.join==='soft';syncGapUI();$('#softRow').hidden=!soft;$('#softBlurRow').hidden=!soft||!HAS_FILTER;}
+seg('joinType',()=>S.join,v=>{S.join=v;syncJoin();renderFromPhoto();refreshIcons();});syncJoin();
+seg('gapFill',()=>S.gapFill,v=>{S.gapFill=v;});
 
 /* ---------- signature ---------- */
 ['#sigFont','#sigFont2'].forEach(sel=>{const groups={};FONTS.forEach(f=>{let og=groups[f.g];if(!og){og=groups[f.g]=document.createElement('optgroup');og.label=f.g;$(sel).appendChild(og);}
@@ -1232,6 +1413,7 @@ function syncExport(){$('#qRow').hidden=S.fmt==='png';$('#qOut').textContent=S.q
   $('#expRead').textContent=fileName()+' · '+S.W+' × '+S.H+' px';
   if($('#gifRead').textContent)syncGif();
   if($('#xsInfo')&&$('#xsInfo').textContent)syncXs();
+  if(typeof syncGapUI==='function'&&$('#gapN'))syncGapUI();
   frameUpd.forEach(f=>f());sigUpd.forEach(f=>f());}
 
 let dlP=null;
@@ -1443,6 +1625,7 @@ const XS_SIZE={'16:9':[1920,1080],'3:4':[960,1280],'4:5':[1080,1350],'1:1':[1200
 function xsCount(){return S.xs.dir==='g'?4:S.xs.n;}
 /* piece rectangles in output pixels; the gap strips between pieces are skipped so the post reads as one picture */
 function splitRects(W,H){
+  if(S.xs.free)return splitRectsFree(W,H);
   const n=xsCount(),g=Math.max(0,Math.round(S.xs.gap)),out=[];
   if(S.xs.dir==='g'){const pw=Math.floor((W-g)/2),ph=Math.floor((H-g)/2);
     [[0,0],[1,0],[0,1],[1,1]].forEach(([cx,cy])=>out.push({x:cx?W-pw:0,y:cy?H-ph:0,w:pw,h:ph}));return out;}
@@ -1506,27 +1689,99 @@ async function exportSplit(asZip){
   finally{xsBusy=false;btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.t;});syncXs();}
 }
 function syncXs(){
+  $('#xsCustom').hidden=S.xs.ratio!=='custom';if(document.activeElement!==$('#xsCW'))$('#xsCW').value=Math.round(S.xs.cw);if(document.activeElement!==$('#xsCH'))$('#xsCH').value=Math.round(S.xs.ch);
   const on=!!S.xs.on;$('#xsOn').checked=on;$('#xsBody').hidden=!on;$('#xsOff').hidden=on;
   [...$('#xsN').children].forEach(b=>{b.disabled=S.xs.dir==='g'&&b.dataset.v!=='4';});
   const n=xsCount(),r=splitRects(S.W,S.H)[0];
   $('#xsInfo').textContent=n+'장 · 한 장 '+r.w+' × '+r.h+'px ('+ratioText(r.w,r.h)+')'+(S.xs.gap>0?' · 사이 '+Math.round(S.xs.gap)+'px 버림':'');
+  $('#xsFree').checked=!!S.xs.free;syncXsSizes();
+  $('#xsInfo').textContent=S.xs.free?n+'장 · '+splitRects(S.W,S.H).map(q=>q.w+'×'+q.h).join(' / ')+(S.xs.gap>0?' · 사이 '+Math.round(S.xs.gap)+'px 버림':''):$('#xsInfo').textContent;
   $('#xsSave').textContent=n+'장 따로 저장';$('#xsGap').value=S.xs.gap;$('#xsGapOut').textContent=Math.round(S.xs.gap)+'px';
 }
 $('#xsOn').onchange=e=>{S.xs.on=e.target.checked;syncXs();schedule();persist();};
 seg('xsDir',()=>S.xs.dir,v=>{S.xs.dir=v;if(v==='g')S.xs.n=4;syncXs();});
 seg('xsN',()=>String(xsCount()),v=>{S.xs.n=+v;syncXs();});
 seg('xsRatio',()=>S.xs.ratio,v=>{S.xs.ratio=v;syncXs();});
+[['xsCW','cw'],['xsCH','ch']].forEach(([id,k])=>{const el=$('#'+id);el.addEventListener('input',()=>{const v=parseFloat(el.value);if(isFinite(v)&&v>=16){S.xs[k]=Math.min(8192,v);persist();}});
+  el.addEventListener('change',()=>{el.value=Math.round(S.xs[k]);});});
 $('#xsGap').oninput=e=>{S.xs.gap=+e.target.value;syncXs();schedule();persist();};
 $('#xsFit').onclick=()=>{
-  const [pw,ph]=XS_SIZE[S.xs.ratio],n=xsCount(),g=Math.round(S.xs.gap);
+  const [pw,ph]=S.xs.ratio==='custom'?[Math.round(S.xs.cw),Math.round(S.xs.ch)]:XS_SIZE[S.xs.ratio],n=xsCount(),g=Math.round(S.xs.gap);
   const W=S.xs.dir==='g'?pw*2+g:S.xs.dir==='h'?pw*n+g*(n-1):pw,H=S.xs.dir==='g'?ph*2+g:S.xs.dir==='h'?ph:ph*n+g*(n-1);
   S.lock=false;setSize(W,H);syncXs();toast('출력 크기를 '+W+' × '+H+'로 맞췄어요');};
 $('#xsSave').onclick=()=>exportSplit(false);$('#xsZip').onclick=()=>exportSplit(true);
 syncXs();
 
+/* ---------- X split: pieces of different sizes ---------- */
+/* weights live in S.xs.wv (위→아래), S.xs.wh (왼→오른), S.xs.gx / S.xs.gy (2×2 columns / rows) */
+function xsW(key,n){let a=Array.isArray(S.xs[key])?S.xs[key].slice(0,n):[];while(a.length<n)a.push(1);a=a.map(v=>v>0?v:1);return a;}
+function spans(total,ws){const sum=ws.reduce((a,b)=>a+b,0),out=[];let acc=0;
+  ws.forEach((w,i)=>{const v=i===ws.length-1?total-acc:Math.max(1,Math.floor(total*w/sum));out.push(v);acc+=v;});return out;}
+function splitRectsFree(W,H){
+  const n=xsCount(),g=Math.max(0,Math.round(S.xs.gap)),out=[];
+  if(S.xs.dir==='g'){const cw=spans(W-g,xsW('gx',2)),ch=spans(H-g,xsW('gy',2));
+    [[0,0],[1,0],[0,1],[1,1]].forEach(([c,r])=>out.push({x:c?cw[0]+g:0,y:r?ch[0]+g:0,w:cw[c],h:ch[r]}));return out;}
+  if(S.xs.dir==='h'){let x=0;spans(W-g*(n-1),xsW('wh',n)).forEach(w=>{out.push({x,y:0,w,h:H});x+=w+g;});return out;}
+  let y=0;spans(H-g*(n-1),xsW('wv',n)).forEach(h=>{out.push({x:0,y,w:W,h});y+=h+g;});return out;
+}
+/* typing a size in px: the output size stays; the other pieces share what is left in proportion */
+function setPiecePx(axis,idx,v){
+  const g=Math.round(S.xs.gap),rs=splitRects(S.W,S.H);
+  let L;
+  if(S.xs.dir==='g')L=axis==='w'?[rs[0].w,rs[1].w]:[rs[0].h,rs[2].h];
+  else L=rs.map(r=>S.xs.dir==='h'?r.w:r.h);
+  const tot=L.reduce((a,c)=>a+c,0),n=L.length,vv=clamp(Math.round(v),16,tot-16*(n-1));
+  const rest=tot-vv,others=L.reduce((a,c,i)=>i===idx?a:a+c,0);
+  const N=L.map((c,i)=>i===idx?vv:Math.max(16,rest*(others>0?c/others:1/(n-1))));
+  if(S.xs.dir==='g'){if(axis==='w')S.xs.gx=N;else S.xs.gy=N;}else if(S.xs.dir==='h')S.xs.wh=N;else S.xs.wv=N;
+  if(vv!==Math.round(v))toast('전체 크기 안에 맞춰 '+vv+'px로 정했어요');
+  persist();schedule();
+}
+var xsSizesKey='';
+function syncXsSizes(){
+  const box=$('#xsSizes');$('#xsFreeBox').hidden=!S.xs.free;if(!S.xs.free)return;
+  const n=xsCount(),dir=S.xs.dir,key=dir+n,rs=splitRects(S.W,S.H);
+  const rows=dir==='g'?[['w',0,'왼쪽 칸 너비'],['w',1,'오른쪽 칸 너비'],['h',0,'위 칸 높이'],['h',1,'아래 칸 높이']]
+    :Array.from({length:n},(_,i)=>[dir==='h'?'w':'h',i,(i+1)+'번 '+(dir==='h'?'너비':'높이')]);
+  if(xsSizesKey!==key){xsSizesKey=key;box.textContent='';
+    rows.forEach(([ax,i,label])=>{const f=document.createElement('div');f.className='nfield';f.style.gridTemplateColumns='96px minmax(0,1fr)';
+      const lb=document.createElement('label');lb.textContent=label;lb.htmlFor='xsp-'+ax+i;
+      const w=document.createElement('span');w.className='nin';const inp=document.createElement('input');inp.type='number';inp.min=16;inp.step=1;inp.id='xsp-'+ax+i;
+      inp.addEventListener('change',()=>{const v=parseFloat(inp.value);if(isFinite(v))setPiecePx(ax,i,v);syncXs();});
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();});
+      w.append(inp,'px');f.append(lb,w);box.appendChild(f);});}
+  rows.forEach(([ax,i])=>{const inp=document.getElementById('xsp-'+ax+i);if(!inp||document.activeElement===inp)return;
+    const r=dir==='g'?(ax==='w'?rs[i]:rs[i*2]):rs[i];inp.value=ax==='w'?r.w:r.h;});
+}
+/* drag a dividing line in the preview to resize the two pieces beside it (output size stays the same) */
+var xsDiv=null;
+function xsDividers(){
+  if(!S.xs.on||!photos.length)return [];
+  const rs=splitRects(S.W,S.H),out=[];
+  if(S.xs.dir==='g'){out.push({ax:'x',pos:(rs[0].x+rs[0].w+rs[1].x)/2,key:'gx',a:0,b:1,len:[rs[0].w,rs[1].w]});
+    out.push({ax:'y',pos:(rs[0].y+rs[0].h+rs[2].y)/2,key:'gy',a:0,b:1,len:[rs[0].h,rs[2].h]});return out;}
+  const hz=S.xs.dir==='h';
+  for(let i=0;i<rs.length-1;i++){const a=rs[i],b=rs[i+1];out.push({ax:hz?'x':'y',pos:hz?(a.x+a.w+b.x)/2:(a.y+a.h+b.y)/2,key:hz?'wh':'wv',a:i,b:i+1,
+    len:rs.map(r=>hz?r.w:r.h)});}
+  return out;
+}
+function nearDivider(e){const r=view.getBoundingClientRect(),X=(e.clientX-r.left)/r.width*S.W,Y=(e.clientY-r.top)/r.height*S.H,tol=9/(r.width/S.W);
+  return xsDividers().find(d=>Math.abs((d.ax==='x'?X:Y)-d.pos)<tol)||null;}
+function xsDivDown(e){const d=nearDivider(e);if(!d)return false;view.setPointerCapture(e.pointerId);
+  if(!S.xs.free){S.xs.free=true;['wv','wh','gx','gy'].forEach(k=>S.xs[k]=[]);xsSizesKey='';syncXs();}
+  xsDiv=Object.assign({},d,{start:d.ax==='x'?e.clientX:e.clientY,scale:view.getBoundingClientRect().width/S.W,base:d.len.slice()});return true;}
+function xsDivMove(e){
+  if(!xsDiv){const d=nearDivider(e);if(d){view.style.cursor=d.ax==='x'?'col-resize':'row-resize';return true;}return false;}
+  const delta=((xsDiv.ax==='x'?e.clientX:e.clientY)-xsDiv.start)/xsDiv.scale,L=xsDiv.base.slice(),tot=L[xsDiv.a]+L[xsDiv.b];
+  L[xsDiv.a]=clamp(Math.round(xsDiv.base[xsDiv.a]+delta),16,tot-16);L[xsDiv.b]=tot-L[xsDiv.a];
+  S.xs[xsDiv.key]=xsDiv.key==='gx'||xsDiv.key==='gy'?[L[0],L[1]]:L;schedule();syncXs();return true;}
+function xsDivUp(){if(!xsDiv)return false;xsDiv=null;persist();return true;}
+$('#xsFree').onchange=e=>{S.xs.free=e.target.checked;xsSizesKey='';syncXs();schedule();persist();};
+$('#xsEven').onclick=()=>{['wv','wh','gx','gy'].forEach(k=>S.xs[k]=[]);xsSizesKey='';syncXs();schedule();persist();toast('조각 크기를 똑같이 나눴어요');};
+
 /* ---------- misc ---------- */
 let tT=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(()=>t.hidden=true,2800);}
-function refresh(){renderPhotos();renderLayouts();renderFromPhoto();syncSize();schedule();}
+function refresh(){renderPhotos();renderLayouts();syncGapUI();renderFromPhoto();syncSize();schedule();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').hidden=true;});
 
 renderMine();refresh();fit();
