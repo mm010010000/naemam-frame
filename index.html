@@ -503,7 +503,11 @@ const DEF={W:1920,H:1080,lock:false,lockR:16/9,layout:{1:'single',2:'h2',3:'L1R2
   fmt:'png',q:92,file:'',fileAuto:true,mine:[],
   xs:{on:false,dir:'v',n:4,ratio:'16:9',gap:0,cw:1200,ch:675,free:false,wv:[],wh:[],gx:[],gy:[]}};
 
-DEF.fx={sigToo:false,frame:false,fv:2,
+DEF.fx={sigToo:false,frame:false,fv:3,
+  sharpen:{on:false,amount:60,radius:1,threshold:0},
+  levels:{on:false,inB:0,gamma:1,inW:255,outB:0,outW:255,split:false,ch:'rgb',
+    r:{inB:0,gamma:1,inW:255,outB:0,outW:255},g:{inB:0,gamma:1,inW:255,outB:0,outW:255},b:{inB:0,gamma:1,inW:255,outB:0,outW:255}},
+  hsl:{on:false,hue:0,sat:0,light:0},
   rain:{on:false,amount:5,length:100,angle:-8,opacity:60,mood:20,speed:10},
   snow:{on:false,amount:20,size:125,opacity:20,speed:25},
   glow:{on:false,strength:55,threshold:60,radius:50},
@@ -523,8 +527,9 @@ try{
     S.sig=Object.assign({},DEF.sig,saved.sig||{});
     if(!(saved.sig&&typeof saved.sig.size2==='number'))S.sig.size2=Math.round(S.sig.size*.46);
     S.gif=Object.assign({},DEF.gif,saved.gif||{});
-    const sf=saved.fx||{};S.fx=JSON.parse(JSON.stringify(DEF.fx));S.fx.sigToo=!!sf.sigToo;S.fx.frame=sf.fv===2?!!sf.frame:false;S.fx.fv=2;
-    for(const k in DEF.fx)if(k!=='sigToo')S.fx[k]=Object.assign({},DEF.fx[k],sf[k]||{});
+    const sf=saved.fx||{};S.fx=JSON.parse(JSON.stringify(DEF.fx));S.fx.sigToo=!!sf.sigToo;S.fx.frame=sf.fv===3&&sf.frame===true;S.fx.fv=3;
+    for(const k in DEF.fx)if(typeof DEF.fx[k]==='object'){S.fx[k]=Object.assign(JSON.parse(JSON.stringify(DEF.fx[k])),sf[k]||{});
+      for(const c of ['r','g','b'])if(DEF.fx[k][c]&&typeof DEF.fx[k][c]==='object')S.fx[k][c]=Object.assign(JSON.parse(JSON.stringify(DEF.fx[k][c])),(sf[k]||{})[c]||{});}
     S.layout=Object.assign({},DEF.layout,saved.layout||{});
     S.split=Object.assign({},saved.split||{});
     S.xs=Object.assign({},DEF.xs,saved.xs||{});
@@ -807,6 +812,7 @@ function photoPath(x,W,H){
   else cellsFor(l,W,H).slice(0,photos.length).forEach(c=>{if(c&&c.poly)polyAdd(x,c.poly,rad);});
 }
 function applyFxScoped(x,W,H,k,cache,t){
+  fxScale=k;
   if(S.fx.frame||!photos.length){applyFx(x,cache,t);return;}
   const [px,py]=padXY(Math.min(W,H)),c=x.canvas;
   const ax=Math.max(0,Math.floor(px*k)),ay=Math.max(0,Math.floor(py*k));
@@ -839,7 +845,7 @@ function fontReady(){const f=curFont(),f2=subFont(),jobs=[document.fonts.load(f.
 
 /* ---------- post effects: run in device pixels on the finished canvas ---------- */
 function rng(seed){let s=seed%2147483647;if(s<=0)s+=2147483646;return()=>(s=s*16807%2147483647)/2147483647;}
-const FX_KEYS=['rain','snow','glow','vhs','vhs2','sizzle','vignette','grain'];
+const FX_KEYS=['sharpen','levels','hsl','rain','snow','glow','vhs','vhs2','sizzle','vignette','grain'];
 function anyFx(){return FX_KEYS.some(k=>S.fx[k].on);}
 let NOISE=null;
 function noiseTile(){if(NOISE)return NOISE;const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
@@ -850,9 +856,51 @@ function noiseFill(x,Wd,Hd,scale,alpha,op,seed){if(alpha<=0)return;const p=x.cre
   x.save();x.globalCompositeOperation=op;x.globalAlpha=Math.min(1,alpha);x.fillStyle=p;x.fillRect(0,0,Wd,Hd);x.restore();}
 
 /* t is the loop position 0..1; every moving element completes whole cycles per loop so GIFs loop seamlessly */
+/* ---------- tone adjustments (sharpen, levels, hue/saturation): one pass over the pixels ---------- */
+var fxScale=1;
+function fxAdjust(x,Wd,Hd,F,cache){
+  let id;try{id=x.getImageData(0,0,Wd,Hd);}catch(e){return;}
+  const d=id.data,N=Wd*Hd;
+  /* unsharp mask: original + amount × (original − blurred), skipped where the difference is under the threshold */
+  let bl=null,amt=0,thr=0;
+  if(F.sharpen.on&&F.sharpen.amount>0){
+    amt=F.sharpen.amount/100;thr=F.sharpen.threshold;const r=Math.max(.3,F.sharpen.radius*fxScale);
+    if(HAS_FILTER){const [B,bx]=getC(cache,'shB',Wd,Hd);bx.filter='blur('+r.toFixed(2)+'px)';bx.drawImage(x.canvas,0,0);bx.filter='none';
+      try{bl=bx.getImageData(0,0,Wd,Hd).data;}catch(e){bl=null;}}
+    if(!bl){bl=new Uint8ClampedArray(d.length);
+      for(let y=0;y<Hd;y++)for(let xx=0;xx<Wd;xx++){const p=(y*Wd+xx)*4;for(let c=0;c<3;c++){let s=0,n=0;
+        for(let dy=-1;dy<=1;dy++){const yy=y+dy;if(yy<0||yy>=Hd)continue;for(let dx=-1;dx<=1;dx++){const x2=xx+dx;if(x2<0||x2>=Wd)continue;s+=d[(yy*Wd+x2)*4+c];n++;}}
+        bl[p+c]=s/n;}}}
+  }
+  let lut=null;
+  let lutR=null,lutG=null,lutB=null;
+  if(F.levels.on){
+    const curve=L=>{const ib=Math.min(L.inB,254),iw=Math.max(ib+1,L.inW),g=Math.max(.05,L.gamma),u=new Uint8ClampedArray(256);
+      for(let v=0;v<256;v++){let t=clamp((v-ib)/(iw-ib),0,1);t=Math.pow(t,1/g);u[v]=Math.round(L.outB+t*(L.outW-L.outB));}return u;};
+    const M=curve(F.levels);
+    if(F.levels.split){const mk=c=>{const C=curve(F.levels[c]),u=new Uint8ClampedArray(256);for(let v=0;v<256;v++)u[v]=M[C[v]];return u;};lutR=mk('r');lutG=mk('g');lutB=mk('b');}
+    else lutR=lutG=lutB=M;
+    lut=true;}
+  const H=F.hsl.on&&(F.hsl.hue||F.hsl.sat||F.hsl.light)?F.hsl:null;
+  let hc=1,hs=0,sf=1,lt=0;
+  if(H){const a=H.hue*Math.PI/180;hc=Math.cos(a);hs=Math.sin(a);sf=1+H.sat/100;lt=H.light/100;}
+  for(let p=0;p<N*4;p+=4){
+    let r=d[p],g=d[p+1],b=d[p+2];
+    if(bl){let df=r-bl[p];if(Math.abs(df)>=thr)r+=amt*df;df=g-bl[p+1];if(Math.abs(df)>=thr)g+=amt*df;df=b-bl[p+2];if(Math.abs(df)>=thr)b+=amt*df;
+      r=r<0?0:r>255?255:r;g=g<0?0:g>255?255:g;b=b<0?0:b>255?255:b;}
+    if(lut){r=lutR[r|0];g=lutG[g|0];b=lutB[b|0];}
+    if(H){const yy=.299*r+.587*g+.114*b,i0=.596*r-.274*g-.322*b,q0=.211*r-.523*g+.312*b;
+      const i1=(i0*hc-q0*hs)*sf,q1=(i0*hs+q0*hc)*sf;
+      r=yy+.956*i1+.621*q1;g=yy-.272*i1-.647*q1;b=yy-1.106*i1+1.703*q1;
+      if(lt>0){r+=(255-r)*lt;g+=(255-g)*lt;b+=(255-b)*lt;}else if(lt<0){r*=1+lt;g*=1+lt;b*=1+lt;}}
+    d[p]=r;d[p+1]=g;d[p+2]=b;
+  }
+  x.putImageData(id,0,0);
+}
 function applyFx(x,cache,t){
   t=t||0;const c=x.canvas,Wd=c.width,Hd=c.height,sh=Math.min(Wd,Hd),F=S.fx,fi=Math.round(t*997);
   x.save();x.setTransform(1,0,0,1,0,0);x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+  if(F.sharpen.on||F.levels.on||F.hsl.on)fxAdjust(x,Wd,Hd,F,cache);
   if(F.rain.on)fxRain(x,Wd,Hd,sh,F.rain,t);
   if(F.snow.on)fxSnow(x,Wd,Hd,sh,F.snow,t);
   if(F.glow.on)fxGlow(x,Wd,Hd,sh,F.glow,cache);
@@ -1449,9 +1497,14 @@ const tabBtns={edit:$('#tabBtnEdit'),fx:$('#tabBtnFx')},tabPanes={edit:$('#tabEd
 function showTab(t){for(const k in tabBtns){const on=k===t;tabBtns[k].setAttribute('aria-selected',on);tabPanes[k].hidden=!on;}}
 tabBtns.edit.onclick=()=>showTab('edit');tabBtns.fx.onclick=()=>showTab('fx');
 const FX_SPEC=[
+  {key:'sharpen',name:'선명하게',desc:'윤곽을 또렷하게 (언샤프 마스크)',ctrls:[['amount','양',0,300,'%',1],['radius','반경',0.3,5,'px',0.1],['threshold','한계값',0,50,'',1]]},
+  {key:'levels',name:'레벨',desc:'검정점·중간톤·흰점으로 명암 조절',target:L=>L.split&&L.ch!=='rgb'?L[L.ch]:L,ctrls:[['!','split','R/G/B 따로 조절'],
+    ['~','ch','채널',[['rgb','전체'],['r','R'],['g','G'],['b','B']],L=>L.split],['#','입력'],['inB','검정점',0,253,'',1],['gamma','중간톤',0.2,3,'',0.01],['inW','흰점',2,255,'',1],
+    ['#','출력'],['outB','출력 검정',0,255,'',1],['outW','출력 흰색',0,255,'',1]]},
+  {key:'hsl',name:'색조/채도',desc:'색을 돌리고, 진하게·연하게, 밝게·어둡게',ctrls:[['hue','색조',-180,180,'°',1],['sat','채도',-100,100,'',1],['light','밝기',-100,100,'',1]]},
+  {key:'glow',name:'글로우',desc:'밝은 부분이 번지며 빛나요',ctrls:[['strength','강도',5,100,'%'],['threshold','밝기 기준',0,95,'%'],['radius','번짐 크기',0,100,'%']]},
   {key:'rain',name:'비',desc:'빗줄기와 어둑한 공기',ctrls:[['amount','양',5,100,'%'],['length','길이',10,100,'%'],['angle','기울기',-40,40,'°'],['opacity','진하기',10,100,'%'],['mood','어둡게',0,100,'%'],['speed','떨어지는 속도',10,100,'%']]},
   {key:'snow',name:'눈',desc:'부드럽게 흩날리는 눈송이',ctrls:[['amount','양',5,100,'%'],['size','크기',10,300,'%'],['opacity','진하기',10,100,'%'],['speed','떨어지는 속도',10,100,'%']]},
-  {key:'glow',name:'글로우',desc:'밝은 부분이 번지며 빛나요',ctrls:[['strength','강도',5,100,'%'],['threshold','밝기 기준',0,95,'%'],['radius','번짐 크기',0,100,'%']]},
   {key:'vhs',name:'VHS',desc:'비디오테이프로 녹화한 느낌',ctrls:[['chroma','색 어긋남',0,100,'%'],['scan','주사선',0,100,'%'],['noise','노이즈',0,100,'%'],['fade','색 바램',0,100,'%'],['track','트래킹 띠',0,100,'%']],toggles:[['osd','PLAY·날짜 글자']]},
   {key:'vhs2',name:'VHS 헤이세이',desc:'90년대 녹화 테이프처럼 번지고 일그러져요',ctrls:[
     ['#','화질'],['lines','세로 줄 수',240,720,'줄',10],
@@ -1470,7 +1523,7 @@ const FX_SPEC=[
 ];
 const fxSync=[];
 FX_SPEC.forEach(sp=>{
-  const o=()=>S.fx[sp.key];
+  const o=()=>S.fx[sp.key],tgt=sp.target?()=>sp.target(o()):o;
   const card=document.createElement('div');card.className='fx';
   const head=document.createElement('label');head.className='fx-head';
   const sw=document.createElement('input');sw.type='checkbox';sw.className='switch';sw.id='fx-'+sp.key;
@@ -1481,14 +1534,19 @@ FX_SPEC.forEach(sp=>{
   sp.ctrls.forEach(c=>{
     if(c[0]==='#'){const hd=document.createElement('div');hd.className='fx-sub';hd.textContent=c[1];body.appendChild(hd);return;}
     if(c[0]==='!'){const [,k,label]=c;const lb=document.createElement('label');lb.className='check';const cb=document.createElement('input');cb.type='checkbox';cb.id='fx-'+sp.key+'-'+k;
-      cb.onchange=()=>{o()[k]=cb.checked;fontReady().then(schedule);schedule();persist();};lb.append(cb,' '+label);body.appendChild(lb);outs.push(()=>{cb.checked=!!o()[k];});return;}
+      cb.onchange=()=>{o()[k]=cb.checked;if(sp.target)syncFx();fontReady().then(schedule);schedule();persist();};lb.append(cb,' '+label);body.appendChild(lb);outs.push(()=>{cb.checked=!!o()[k];});return;}
+    if(c[0]==='~'){const [,k,label,opts,showIf]=c;const row=document.createElement('div');row.className='row';row.style.gap='10px';
+      const lb=document.createElement('span');lb.className='lbl';lb.textContent=label;const sg=document.createElement('div');sg.className='seg';
+      opts.forEach(([v,txt])=>{const bt=document.createElement('button');bt.type='button';bt.dataset.v=v;bt.textContent=txt;bt.onclick=()=>{o()[k]=v;syncFx();persist();};sg.appendChild(bt);});
+      row.append(lb,sg);body.appendChild(row);
+      outs.push(()=>{row.hidden=!!showIf&&!showIf(o());[...sg.children].forEach(bt=>bt.setAttribute('aria-pressed',bt.dataset.v===o()[k]));});return;}
     const [k,label,min,max,unit,step]=c,dec=step&&step<1?String(step).split('.')[1].length:0,fmt=v=>(+v).toFixed(dec)+unit;
     const f=document.createElement('div');f.className='field';
     const lb=document.createElement('label');lb.htmlFor='fx-'+sp.key+'-'+k;lb.textContent=label;
     const rg=document.createElement('input');rg.type='range';rg.id=lb.htmlFor;rg.min=min;rg.max=max;if(step)rg.step=step;
     const out=document.createElement('output');
-    rg.addEventListener('input',()=>{o()[k]=+rg.value;out.textContent=fmt(rg.value);schedule();persist();});
-    outs.push(()=>{rg.value=o()[k];out.textContent=fmt(o()[k]);});
+    rg.addEventListener('input',()=>{tgt()[k]=+rg.value;out.textContent=fmt(rg.value);schedule();persist();});
+    outs.push(()=>{rg.value=tgt()[k];out.textContent=fmt(tgt()[k]);});
     f.append(lb,rg,out);body.appendChild(f);
   });
   (sp.choices||[]).forEach(([k,label,opts])=>{
@@ -1505,7 +1563,7 @@ FX_SPEC.forEach(sp=>{
     lb.append(cb,' '+label);body.appendChild(lb);outs.push(()=>{cb.checked=!!o()[k];});
   });
   const rs=document.createElement('button');rs.type='button';rs.className='chip';rs.textContent='기본값으로';rs.style.justifySelf='start';
-  rs.onclick=()=>{S.fx[sp.key]=Object.assign({},DEF.fx[sp.key],{on:true});syncFx();fontReady().then(schedule);schedule();persist();toast(sp.name+' 기본값으로 되돌렸어요');};
+  rs.onclick=()=>{S.fx[sp.key]=Object.assign(JSON.parse(JSON.stringify(DEF.fx[sp.key])),{on:true});syncFx();fontReady().then(schedule);schedule();persist();toast(sp.name+' 기본값으로 되돌렸어요');};
   body.appendChild(rs);
   sw.onchange=()=>{o().on=sw.checked;syncFx();fontReady().then(schedule);schedule();persist();if(sp.key==='sizzle'&&sw.checked&&!playing)setPlay(true);};
   fxSync.push(()=>{sw.checked=o().on;body.hidden=!o().on;card.classList.toggle('on',o().on);outs.forEach(fn=>fn());});
@@ -1524,7 +1582,7 @@ const FX_PRESETS=[
   ['짜글짜글',{sizzle:{on:true}}],
   ['필름 사진',{grain:{on:true,amount:40,size:35},vignette:{on:true,amount:40}}],
 ];
-function applyPreset(p){FX_KEYS.forEach(k=>{S.fx[k]=Object.assign({},DEF.fx[k],p[k]||{on:false});});syncFx();fontReady().then(schedule);schedule();persist();if(p.sizzle&&!playing)setPlay(true);}
+function applyPreset(p){FX_KEYS.forEach(k=>{S.fx[k]=Object.assign(JSON.parse(JSON.stringify(DEF.fx[k])),p[k]||{on:false});});syncFx();fontReady().then(schedule);schedule();persist();if(p.sizzle&&!playing)setPlay(true);}
 FX_PRESETS.forEach(([name,p])=>{const c=document.createElement('button');c.type='button';c.className='chip';c.textContent=name;c.onclick=()=>{applyPreset(p);toast(name+' 적용했어요');};$('#fxPresets').appendChild(c);});
 {const off=document.createElement('button');off.type='button';off.className='chip';off.textContent='모두 끄기';off.onclick=()=>{applyPreset({});toast('효과를 모두 껐어요');};$('#fxPresets').appendChild(off);}
 syncFx();
